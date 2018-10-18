@@ -14,7 +14,9 @@
     "@types/request": "^2.47.1",
     "@types/request-promise-native": "^1.0.15",
     "serverless-offline": "^3.27.0",
-    "serverless-plugin-typescript": "EugeneDraitsev/serverless-plugin-typescript#build"
+    "serverless-plugin-typescript": "EugeneDraitsev/serverless-plugin-typescript#build",
+    "tslint": "^5.11.0",
+    "tslint-config-standard": "^8.0.1"
   },
   "dependencies": {
     "request": "^2.88.0",
