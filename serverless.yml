@@ -65,6 +65,14 @@ package:
   include: ['handler.ts']
 
 functions:
+  manifestHandler:
+    handler: handler.manifestHandler
+
+    events:
+      - http:
+          path: manifestHandler
+          method: get
+
   hello:
     handler: handler.hello
 
