@@ -62,11 +62,13 @@ provider:
 
 package:
   exclude: ['node_modules/**/*']
-  include: ['handler.ts']
+  include: ['config.json']
 
 functions:
   manifestHandler:
     handler: handler.manifestHandler
+    environment:
+      UPDATE_STATUS: ''
 
     events:
       - http:

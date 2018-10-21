@@ -1,93 +1,65 @@
-import { Handler, Context, Callback } from 'aws-lambda'
-
-import { URL } from 'url'
-
-import * as request from 'request-promise-native'
+import { Callback, Context, Handler } from 'aws-lambda'
+import { constants as ZlibConstants, gzip, ZlibOptions } from 'zlib'
+import { retrieveManifest, tokenGenerator } from './docker-registry'
+import { Status } from './update-status'
+import { updateFunctionConfiguration } from './lambda'
 
 interface HelloResponse {
   statusCode: number
   body: string
 }
 
-interface DockerToken {
-  token: string
-  access_token: string
-  expires_in: number
-  /**
-   * Example: 2018-10-18T17:22:55.893319601Z
-   */
-  issued_at: string
-}
-
-interface DockerManifest {
-  schemaVersion: number
-  /**
-   * Example: 'library/node'
-   */
-  name: string
-  /**
-   * Example: '8'
-   */
-  tag: string
-  /**
-   * Example: 'amd64'
-   */
-  architecture: string
-  /**
-   * Example: [{ blobSum: 'sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4' }]
-   */
-  fsLayers: { blobSum: string }[]
-  /**
-   * Not used for now
-   */
-  history: []
-}
-
 const URL_TOKENS = 'https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/node:pull'
 const PROJECT = 'library/node'
 const TAG = '8'
 
-const TOKEN_URL = 'https://auth.docker.io/token'
-const REGISTRY_URL = 'https://registry-1.docker.io/v2/'
+function retrieveUpdateStatus () {
+  const { UPDATE_STATUS } = process.env
 
-function tokenGenerator (project: string = PROJECT) {
-  const ACTION = 'Token Generation'
-  const queryParams = {
-    service: 'registry.docker.io',
-    scope: `repository:${ PROJECT }:pull`,
-  }
-  const dockerRequest = request.get(TOKEN_URL, { qs: queryParams, json: true })
-  const tokenPromise = dockerRequest.then((data: DockerToken) => data.token)
 
-  dockerRequest.catch((err) => {
-    console.error(ACTION, 'failed with error:', err)
-  })
-
-  return tokenPromise
 }
 
-function retrieveManifest (tokenP: Promise<string>, project: string = PROJECT, tag: string = TAG): Promise<DockerManifest> {
-  const ACTION = 'Manifest Retrieval'
-  const manifestURL = new URL(`${ project }/manifests/${ tag }`, REGISTRY_URL)
-  const manifestRequest = tokenP.then((token) => {
-    return request.get(manifestURL.toString(), { json: true, auth: { bearer: token } })
+function saveUpdateStatus (status: Status) {
+  const statusToString = JSON.stringify(status)
+  const options: ZlibOptions = { level: ZlibConstants.Z_BEST_COMPRESSION }
+
+  const gzipP: Promise<Buffer> = new Promise((resolve, reject) => {
+    gzip(statusToString, options, (err, result) => {
+      if (err != null) return reject(err)
+      resolve(result)
+    })
   })
 
-  manifestRequest.catch((err) => {
-    console.error(ACTION, 'failed with error:', err)
+  const updateFunctionP = gzipP.then(gzipStatus => {
+    const status = gzipStatus.toString('base64')
+    return updateFunctionConfiguration(status)
   })
 
-  return manifestRequest
+  return updateFunctionP
 }
 
 function manifestHandler (event: any, context: Context, callback: Callback) {
+
+  const { LAST_SHA } = process.env
+  console.log('ALL ENV', process.env)
   const response: HelloResponse = {
     body: '',
     statusCode: 200
   }
 
-  const manifestP = retrieveManifest(tokenGenerator())
+  const manifestP = retrieveManifest(tokenGenerator(PROJECT), PROJECT, TAG)
   manifestP
+    .then(manifest => {
+      const lastLayer = manifest.fsLayers[manifest.fsLayers.length - 1]
+      const manifestLastSHA = lastLayer.blobSum
+
+      // In case last layer has changed, a function configuration update it's triggered
+      // and then we return to normal flow returning from the promise a DockerManifest
+      if (LAST_SHA !== manifestLastSHA) {
+        return updateFunctionConfiguration(manifestLastSHA).then(() => manifest)
+      }
+      return manifest
+    })
     .then(manifest => response.body = JSON.stringify(manifest))
     .catch(err => {
       response.body = err

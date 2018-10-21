@@ -1,0 +1,11 @@
+{
+  "images": [
+    {
+      "repository": "library/node",
+      "tags": ["8"],
+      "url": "https://registry.hub.docker.com/u/colthreepv/node-chrome/trigger/7c47ec65-31e9-4f48-8074-1683c2050d9b/"
+    }
+  ],
+  "region": "eu-central-1",
+  "appEnv": "dev"
+}
