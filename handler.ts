@@ -1,8 +1,9 @@
 import { Callback, Context, Handler } from 'aws-lambda'
-import { constants as ZlibConstants, gzip, ZlibOptions } from 'zlib'
+import { constants as ZlibConstants, gzip, gunzip, ZlibOptions } from 'zlib'
 import { retrieveManifest, tokenGenerator } from './docker-registry'
 import { Status } from './update-status'
 import { updateFunctionConfiguration } from './lambda'
+import { config } from './config'
 
 interface HelloResponse {
   statusCode: number
@@ -14,9 +15,18 @@ const PROJECT = 'library/node'
 const TAG = '8'
 
 function retrieveUpdateStatus () {
-  const { UPDATE_STATUS } = process.env
+  const UPDATE_STATUS = process.env.UPDATE_STATUS || ''
 
+  const updateStatusB64 = Buffer.from(UPDATE_STATUS, 'base64')
+  const gunzipP: Promise<Buffer> = new Promise((resolve, reject) => {
+    gunzip(updateStatusB64, (err, result) => {
+      if (err != null) return reject(err)
+      resolve(result)
+    })
+  })
 
+  const updateStatusString = gunzipP.then(bufferStatus => JSON.parse(bufferStatus.toString()) as Status)
+  return updateStatusString
 }
 
 function saveUpdateStatus (status: Status) {
@@ -39,9 +49,8 @@ function saveUpdateStatus (status: Status) {
 }
 
 function manifestHandler (event: any, context: Context, callback: Callback) {
+  const actualUpdateStatus = retrieveUpdateStatus()
 
-  const { LAST_SHA } = process.env
-  console.log('ALL ENV', process.env)
   const response: HelloResponse = {
     body: '',
     statusCode: 200
