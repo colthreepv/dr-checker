@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "aws-sdk": "^2.337.0",
+    "promise-limit": "^2.7.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5"
   }
