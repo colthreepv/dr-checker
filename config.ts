@@ -14,9 +14,9 @@ interface Project {
 }
 
 export interface Config {
-  image: Project[]
+  images: Project[]
   region: string
   appEnv: 'dev' | 'prod'
 }
 
-export const config = require('./config') as Config
+export const config = require('./config.json') as Config

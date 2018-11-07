@@ -2,6 +2,7 @@ import promiseLimit from 'promise-limit'
 import * as request from 'request-promise-native'
 import { Config } from './config'
 import { Status } from './update-status'
+import { URL } from 'url'
 
 const TOKEN_URL = 'https://auth.docker.io/token'
 const REGISTRY_URL = 'https://registry-1.docker.io/v2/'
@@ -91,11 +92,13 @@ export function retrieveManifest (token: string | Promise<string>, project: stri
     console.error(ACTION, 'failed with error:', err)
   })
 
-  return manifestRequest
+  return manifestRequest as Promise<DockerManifest>
 }
 
 // compares new image layer hashes to the saved ones, returns a Status
-function checkImageHashChange (lastHash: string, currentHash: string): Status {}
+function checkImageHashChange (lastHash: string, currentHash: string): Status {
+  return {}
+}
 
 const manifestLimit = promiseLimit(MAX_CONCURRENT_MANIFEST_REQUESTS)
 
@@ -103,8 +106,8 @@ const manifestLimit = promiseLimit(MAX_CONCURRENT_MANIFEST_REQUESTS)
 // ultimately producing a Status
 export function checkAllImages (config: Config) {
   const manifestPromises = []
-  for (let index = 0; index < config.image.length; index++) {
-    const project = config.image[index]
+  for (let index = 0; index < config.images.length; index++) {
+    const project = config.images[index]
 
     const projectTokenP = tokenGenerator(project.repository)
 
@@ -126,6 +129,9 @@ export function checkAllImages (config: Config) {
   const newStatus: Status = {}
 
   // FIXME: create a new status based on the manifests retrieved
-  Promise.all(manifestPromises).then(manifests => {})
+  Promise.all(manifestPromises).then(manifests => {
+    console.log('MANIFEST INCOMING')
+    console.log(manifests)
+  })
 
 }
