@@ -14,8 +14,8 @@ const PROJECT = 'library/node'
 const TAG = '8'
 
 function retrieveUpdateStatus () {
-  if (process.env.UPDATE_STATUS == null) return Promise.resolve({} as Status)
-  const UPDATE_STATUS = process.env.UPDATE_STATUS
+  if (process.env.UPDATE_STATUS === '') return Promise.resolve({} as Status)
+  const UPDATE_STATUS = process.env.UPDATE_STATUS as string
 
   const updateStatusB64 = Buffer.from(UPDATE_STATUS, 'base64')
   const gunzipP: Promise<Buffer> = new Promise((resolve, reject) => {
@@ -49,34 +49,16 @@ function saveUpdateStatus (status: Status) {
 }
 
 function manifestHandler (event: any, context: Context, callback: Callback) {
-  const actualUpdateStatus = retrieveUpdateStatus()
-
-  const newStatus = checkAllImages(config)
+  const previousStatus = retrieveUpdateStatus()
+  const newStatus = previousStatus.then(status => checkAllImages(config, status))
 
   const response: HelloResponse = {
     body: '',
     statusCode: 200
   }
 
-  // const manifestP = retrieveManifest(tokenGenerator(PROJECT), PROJECT, TAG)
-  // manifestP
-  //   .then(manifest => {
-  //     const lastLayer = manifest.fsLayers[manifest.fsLayers.length - 1]
-  //     const manifestLastSHA = lastLayer.blobSum
-
-  //     // In case last layer has changed, a function configuration update it's triggered
-  //     // and then we return to normal flow returning from the promise a DockerManifest
-  //     if (LAST_SHA !== manifestLastSHA) {
-  //       return updateFunctionConfiguration(manifestLastSHA).then(() => manifest)
-  //     }
-  //     return manifest
-  //   })
-  //   .then(manifest => response.body = JSON.stringify(manifest))
-  //   .catch(err => {
-  //     response.body = err
-  //     response.statusCode = 500
-  //   })
-  //   .then(() => callback(undefined, response))
+  // send notifications to the projects changed
+  // newStatus.then(status => saveUpdateStatus)
 }
 
 const hello: Handler = (event: any, context: Context, callback: Callback) => {

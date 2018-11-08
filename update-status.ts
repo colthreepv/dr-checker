@@ -1,6 +1,5 @@
-export interface Status {
-  [project: string]: { [tag: string]: string }
-}
+export interface StatusLayer { [tag: string]: string }
+export interface Status { [project: string]: StatusLayer }
 
 /**
  * Example:

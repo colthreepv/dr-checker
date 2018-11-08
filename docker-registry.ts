@@ -1,7 +1,7 @@
 import promiseLimit from 'promise-limit'
 import * as request from 'request-promise-native'
 import { Config } from './config'
-import { Status } from './update-status'
+import { StatusLayer, Status } from './update-status'
 import { URL } from 'url'
 
 const TOKEN_URL = 'https://auth.docker.io/token'
@@ -96,16 +96,22 @@ export function retrieveManifest (token: string | Promise<string>, project: stri
 }
 
 // compares new image layer hashes to the saved ones, returns a Status
-function checkImageHashChange (lastHash: string, currentHash: string): Status {
+function checkImageHashChange (lastHash: string, currentHash: string): StatusLayer {
   return {}
+}
+
+function retrieveStatusHash (project: string, tag: string, previousStatus: Status) {
+  if (previousStatus[project] == null) return null
+  if (previousStatus[project][tag] == null) return null
+  return previousStatus[project][tag]
 }
 
 const manifestLimit = promiseLimit(MAX_CONCURRENT_MANIFEST_REQUESTS)
 
 // loops over config.image and checks manifests and compares for each one
 // ultimately producing a Status
-export function checkAllImages (config: Config) {
-  const manifestPromises = []
+export function checkAllImages (config: Config, previousStatus: Status) {
+  const manifestPromises = [] as Promise<DockerManifest>[]
   for (let index = 0; index < config.images.length; index++) {
     const project = config.images[index]
 
@@ -117,9 +123,10 @@ export function checkAllImages (config: Config) {
       // adds a promise to the bunch
       manifestPromises.push(
         projectTokenP.then(token => { // assure there is a token
-          return manifestLimit(() => { // await the semaphore is green
-            return retrieveManifest(token, project.repository, tag)
-          })
+          // await the semaphore is green
+          return manifestLimit(
+            () => retrieveManifest(token, project.repository, tag)
+          ) as Promise<DockerManifest>
         })
       )
 
@@ -129,9 +136,19 @@ export function checkAllImages (config: Config) {
   const newStatus: Status = {}
 
   // FIXME: create a new status based on the manifests retrieved
-  Promise.all(manifestPromises).then(manifests => {
-    console.log('MANIFEST INCOMING')
-    console.log(manifests)
-  })
+  return Promise.all(manifestPromises).then((manifests) => {
+    manifests.forEach(manifest => {
+      const project = manifest.name
+      const tag = manifest.tag
 
+      // hash taken from saved Status
+      const previousStatusHash = retrieveStatusHash(project, tag, previousStatus)
+
+      const lastBlobSum = manifest.fsLayers[manifest.fsLayers.length - 1].blobSum
+      newStatus[project] = newStatus[project] || {}
+      newStatus[project][tag] = lastBlobSum
+    })
+
+    return newStatus
+  })
 }
