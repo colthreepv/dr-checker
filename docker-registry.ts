@@ -107,48 +107,48 @@ function retrieveStatusHash (project: string, tag: string, previousStatus: Statu
 }
 
 const manifestLimit = promiseLimit(MAX_CONCURRENT_MANIFEST_REQUESTS)
+type DockerManifestProm = Promise<DockerManifest>[]
 
 // loops over config.image and checks manifests and compares for each one
 // ultimately producing a Status
-export function checkAllImages (config: Config, previousStatus: Status) {
-  const manifestPromises = [] as Promise<DockerManifest>[]
-  for (let index = 0; index < config.images.length; index++) {
-    const project = config.images[index]
+export async function checkAllImages (config: Config, previousStatus: Status) {
+  // const manifestPromises = [] as Promise<DockerManifest>[]
 
+  let manifestPromises: DockerManifestProm
+
+  // this will have 2 dimensions: 1) projects, 2) for each project, an array of tags
+  const manifestRetrieveList = config.images.map(project => {
     const projectTokenP = tokenGenerator(project.repository)
 
-    for (let projectIndex = 0; projectIndex < project.tags.length; projectIndex++) {
-      const tag = project.tags[projectIndex]
-
-      // adds a promise to the bunch
-      manifestPromises.push(
-        projectTokenP.then(token => { // assure there is a token
-          // await the semaphore is green
-          return manifestLimit(
-            () => retrieveManifest(token, project.repository, tag)
-          ) as Promise<DockerManifest>
-        })
+    return project.tags.map(tag => {
+      // awaits project token generation
+      return projectTokenP.then(token =>
+        // locks on semaphore for manifests
+        manifestLimit(() =>
+          // finally retrieves manifest
+          retrieveManifest(token, project.repository, tag)) as Promise<DockerManifest>
       )
+    })
+  })
 
-    }
-  }
+  const manifestList = manifestRetrieveList.reduce((newArray, list) => {
+    return newArray.concat(list)
+  }, [])
 
   const newStatus: Status = {}
 
-  // FIXME: create a new status based on the manifests retrieved
-  return Promise.all(manifestPromises).then((manifests) => {
-    manifests.forEach(manifest => {
-      const project = manifest.name
-      const tag = manifest.tag
+  const manifests = await Promise.all(manifestList)
+  manifests.forEach(manifest => {
+    const project = manifest.name
+    const tag = manifest.tag
 
-      // hash taken from saved Status
-      const previousStatusHash = retrieveStatusHash(project, tag, previousStatus)
+    // hash taken from saved Status
+    const previousStatusHash = retrieveStatusHash(project, tag, previousStatus)
 
-      const lastBlobSum = manifest.fsLayers[manifest.fsLayers.length - 1].blobSum
-      newStatus[project] = newStatus[project] || {}
-      newStatus[project][tag] = lastBlobSum
-    })
-
-    return newStatus
+    const lastBlobSum = manifest.fsLayers[manifest.fsLayers.length - 1].blobSum
+    newStatus[project] = newStatus[project] || {}
+    newStatus[project][tag] = lastBlobSum
   })
+
+  return newStatus
 }

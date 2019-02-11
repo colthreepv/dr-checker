@@ -29,7 +29,7 @@ function retrieveUpdateStatus () {
   return updateStatusString
 }
 
-function saveUpdateStatus (status: Status) {
+async function saveUpdateStatus (status: Status) {
   const statusToString = JSON.stringify(status)
   const options: ZlibOptions = { level: ZlibConstants.Z_BEST_COMPRESSION }
 
@@ -40,23 +40,25 @@ function saveUpdateStatus (status: Status) {
     })
   })
 
-  const updateFunctionP = gzipP.then(gzipStatus => {
-    const status = gzipStatus.toString('base64')
-    return updateFunctionConfiguration(status)
-  })
-
-  return updateFunctionP
+  const gzipStatus = await gzipP
+  const newStatus = gzipStatus.toString('base64')
+  return updateFunctionConfiguration(newStatus)
 }
 
-function manifestHandler (event: any, context: Context, callback: Callback) {
-  const previousStatus = retrieveUpdateStatus()
-  const newStatus = previousStatus.then(status => checkAllImages(config, status))
+async function manifestHandler (event: any, context: Context) {
+  const previousStatus = await retrieveUpdateStatus()
+  const newStatus = await checkAllImages(config, previousStatus)
+
+  console.log('New Status:', newStatus)
 
   const response: HelloResponse = {
     body: '',
     statusCode: 200
   }
 
+  // console.log()
+
+  return response
   // send notifications to the projects changed
   // newStatus.then(status => saveUpdateStatus)
 }
