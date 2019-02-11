@@ -4,19 +4,22 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha -r ts-node/register test/*.test.ts"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@hewmen/serverless-plugin-typescript": "^1.1.17",
     "@types/aws-lambda": "^8.10.13",
+    "@types/mocha": "^5.2.5",
     "@types/request": "^2.47.1",
     "@types/request-promise-native": "^1.0.15",
+    "mocha": "^5.2.0",
     "serverless-offline": "^3.27.0",
     "serverless-plugin-typescript": "EugeneDraitsev/serverless-plugin-typescript#build",
     "tslint": "^5.11.0",
-    "tslint-config-standard": "^8.0.1"
+    "tslint-config-standard": "^8.0.1",
+    "unexpected": "^11.0.0"
   },
   "dependencies": {
     "aws-sdk": "^2.337.0",
