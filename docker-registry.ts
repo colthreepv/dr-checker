@@ -1,15 +1,16 @@
 import promiseLimit from 'promise-limit'
 import * as request from 'request-promise-native'
-import { Config } from './config'
-import { StatusLayer, Status } from './update-status'
 import { URL } from 'url'
+
+import { Config } from './config'
+import { Status, StatusLayer } from './update-status'
 
 const TOKEN_URL = 'https://auth.docker.io/token'
 const REGISTRY_URL = 'https://registry-1.docker.io/v2/'
 
 const MAX_CONCURRENT_MANIFEST_REQUESTS = 2
 
-interface DockerToken {
+export interface DockerToken {
   token: string
   access_token: string
   expires_in: number
@@ -19,7 +20,7 @@ interface DockerToken {
   issued_at: string
 }
 
-interface DockerManifest {
+export interface DockerManifest {
   schemaVersion: number
   /**
    * Example: 'library/node'
@@ -43,13 +44,19 @@ interface DockerManifest {
   history: any[]
 }
 
-const tokenBank: { [key: string]: { token: string, expiry: Date } } = {}
+export type TokenBank = { [key: string]: { token: string, expiry: Date } }
 
-export function tokenGenerator (project: string) {
+// initialize a global token bank
+const tokenBank: TokenBank = {}
+
+// foreignTokenBank is useful especially for testing
+export async function tokenGenerator (project: string, foreignTokenBank?: TokenBank) {
+  const bank = foreignTokenBank || tokenBank
+
   // fast return in case token it's in bank
-  if (tokenBank[project] != null) {
+  if (bank[project] != null) {
     const nowDate = new Date()
-    if (nowDate < tokenBank[project].expiry) return Promise.resolve(tokenBank[project].token)
+    if (nowDate < bank[project].expiry) return bank[project].token
   }
 
   const ACTION = 'Token Generation'
@@ -57,25 +64,25 @@ export function tokenGenerator (project: string) {
     service: 'registry.docker.io',
     scope: `repository:${ project }:pull`
   }
-  const dockerRequest = request.get(TOKEN_URL, { qs: queryParams, json: true })
-  // banks the token
-  dockerRequest.then((data: DockerToken) => {
-    const expiryDate = new Date()
-    expiryDate.setUTCSeconds(expiryDate.getUTCSeconds() + data.expires_in)
 
-    tokenBank[project] = {
-      token: data.token,
-      expiry: expiryDate
-    }
-  })
-
-  const tokenPromise = dockerRequest.then((data: DockerToken) => data.token)
-
-  dockerRequest.catch((err) => {
+  let dockerToken: DockerToken
+  try {
+    dockerToken = await request.get(TOKEN_URL, { qs: queryParams, json: true })
+  } catch (err) {
     console.error(ACTION, 'failed with error:', err)
-  })
+    throw new Error(err)
+  }
 
-  return tokenPromise
+  // banks the token
+  const expiryDate = new Date()
+  expiryDate.setUTCSeconds(expiryDate.getUTCSeconds() + dockerToken.expires_in)
+
+  bank[project] = {
+    token: dockerToken.token,
+    expiry: expiryDate
+  }
+
+  return dockerToken.token
 }
 
 // retrieves manifest from the docker image, with all the layers hashes
