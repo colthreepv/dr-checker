@@ -66,22 +66,14 @@ package:
   include: ['config.json']
 
 functions:
-  manifestHandler:
-    handler: handler.manifestHandler
+  checker:
+    handler: handler.checker
     environment:
       UPDATE_STATUS: ''
 
     events:
       - http:
-          path: manifestHandler
-          method: get
-
-  hello:
-    handler: handler.hello
-
-    events:
-      - http:
-          path: hello
+          path: checker
           method: get
 
 #    The following are a few example events you can configure

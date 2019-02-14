@@ -9,7 +9,7 @@ interface HelloResponse {
   body: string
 }
 
-async function checker (event: any, context: Context) {
+export async function checker (event: any, context: Context) {
   const previousStatus = await retrieveUpdateStatus()
   const newStatus = await checkAllImages(config, previousStatus)
 
@@ -28,16 +28,3 @@ async function checker (event: any, context: Context) {
   // send notifications to the projects changed
   // newStatus.then(status => saveUpdateStatus)
 }
-
-const hello: Handler = (event: any, context: Context, callback: Callback) => {
-  const response: HelloResponse = {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: Math.floor(Math.random() * 10)
-    })
-  }
-
-  callback(undefined, response)
-}
-
-export { hello, manifestHandler }
