@@ -49,5 +49,6 @@ export async function saveUpdateStatus (status: Status) {
 
   const gzipStatus = await gzipP
   const newStatus = gzipStatus.toString('base64')
+  console.log('newStatus b64:', newStatus)
   return updateFunctionConfiguration(newStatus)
 }

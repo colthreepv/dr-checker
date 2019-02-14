@@ -2,14 +2,14 @@ import { Callback, Context, Handler } from 'aws-lambda'
 
 import { config } from './config'
 import { checkAllImages } from './docker-registry'
-import { retrieveUpdateStatus } from './lambda'
+import { retrieveUpdateStatus, saveUpdateStatus } from './lambda'
 
 interface HelloResponse {
   statusCode: number
   body: string
 }
 
-async function manifestHandler (event: any, context: Context) {
+async function checker (event: any, context: Context) {
   const previousStatus = await retrieveUpdateStatus()
   const newStatus = await checkAllImages(config, previousStatus)
 
@@ -19,6 +19,8 @@ async function manifestHandler (event: any, context: Context) {
     body: JSON.stringify(newStatus),
     statusCode: 200
   }
+
+  const updateOutcome = await saveUpdateStatus(newStatus)
 
   // console.log()
 

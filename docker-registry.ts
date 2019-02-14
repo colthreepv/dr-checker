@@ -3,6 +3,7 @@ import * as request from 'request-promise-native'
 import { URL } from 'url'
 
 import { Config } from './config'
+import { DockerManifest, DockerToken } from './registry'
 import { Status, StatusLayer } from './update-status'
 
 const TOKEN_URL = 'https://auth.docker.io/token'
@@ -10,44 +11,12 @@ const REGISTRY_URL = 'https://registry-1.docker.io/v2/'
 
 const MAX_CONCURRENT_MANIFEST_REQUESTS = 2
 
-export interface DockerToken {
-  token: string
-  access_token: string
-  expires_in: number
-  /**
-   * Example: 2018-10-18T17:22:55.893319601Z
-   */
-  issued_at: string
-}
-
-export interface DockerManifest {
-  schemaVersion: number
-  /**
-   * Example: 'library/node'
-   */
-  name: string
-  /**
-   * Example: '8'
-   */
-  tag: string
-  /**
-   * Example: 'amd64'
-   */
-  architecture: string
-  /**
-   * Example: [{ blobSum: 'sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4' }]
-   */
-  fsLayers: { blobSum: string }[]
-  /**
-   * Not used for now
-   */
-  history: any[]
-}
-
 export type TokenBank = { [key: string]: { token: string, expiry: Date } }
+type DockerManifestProm = Promise<DockerManifest>[]
 
 // initialize a global token bank
 const tokenBank: TokenBank = {}
+const manifestLimit = promiseLimit(MAX_CONCURRENT_MANIFEST_REQUESTS)
 
 // foreignTokenBank is useful especially for testing
 export async function tokenGenerator (project: string, foreignTokenBank?: TokenBank) {
@@ -113,9 +82,6 @@ function retrieveStatusHash (project: string, tag: string, previousStatus: Statu
   return previousStatus[project][tag]
 }
 
-const manifestLimit = promiseLimit(MAX_CONCURRENT_MANIFEST_REQUESTS)
-type DockerManifestProm = Promise<DockerManifest>[]
-
 // loops over config.image and checks manifests and compares for each one
 // ultimately producing a Status
 export async function checkAllImages (config: Config, previousStatus: Status) {
@@ -138,6 +104,7 @@ export async function checkAllImages (config: Config, previousStatus: Status) {
     })
   })
 
+  // from 2 dimensions array to single dimension
   const manifestList = manifestRetrieveList.reduce((newArray, list) => {
     return newArray.concat(list)
   }, [])
