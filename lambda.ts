@@ -21,7 +21,7 @@ export function updateFunctionConfiguration (status: string) {
     } as Lambda.Environment
   }
   const updateConfigRequest = lambda.updateFunctionConfiguration(params).promise()
-  updateConfigRequest.then(resp => console.log('updateConfig', resp))
+  // updateConfigRequest.then(resp => console.log('updateConfig', resp))
 
   return updateConfigRequest
 }
@@ -49,6 +49,5 @@ export async function saveUpdateStatus (status: Status) {
 
   const gzipStatus = await gzipP
   const newStatus = gzipStatus.toString('base64')
-  console.log('newStatus b64:', newStatus)
   return updateFunctionConfiguration(newStatus)
 }

@@ -2,14 +2,13 @@
   "name": "dr-checker",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "handler.js",
   "scripts": {
     "test": "ts-mocha test/*.test.ts"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@hewmen/serverless-plugin-typescript": "^1.1.17",
     "@types/aws-lambda": "^8.10.13",
     "@types/chai": "^4.1.7",
     "@types/mocha": "^5.2.5",
@@ -18,10 +17,14 @@
     "chai": "^4.2.0",
     "mocha": "^5.2.0",
     "serverless-offline": "^3.27.0",
-    "serverless-plugin-typescript": "EugeneDraitsev/serverless-plugin-typescript#build",
+    "serverless-webpack": "^5.2.0",
+    "source-map-support": "^0.5.10",
+    "ts-loader": "^5.3.3",
     "ts-mocha": "^2.0.0",
     "tslint": "^5.11.0",
-    "tslint-config-standard": "^8.0.1"
+    "tslint-config-standard": "^8.0.1",
+    "typescript": "^3.3.3333",
+    "webpack": "^4.29.5"
   },
   "dependencies": {
     "aws-sdk": "^2.337.0",

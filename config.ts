@@ -1,3 +1,5 @@
+import { RequestPromiseOptions } from 'request-promise-native'
+
 interface Project {
   /**
    * Example: library/node
@@ -8,9 +10,14 @@ interface Project {
    */
   tags: string[]
   /**
-   * url where to make a POST request in case the tag changed
+   * simple usage: url where to make a POST request in case the tag changed
    */
-  url: string
+  notification: string
+  /**
+   * advanced usage: request option, it gets eval()uated.
+   * It can run take inside process.env values
+   */
+  notificationRequest: RequestPromiseOptions
 }
 
 export interface Config {
@@ -19,4 +26,18 @@ export interface Config {
   appEnv: 'dev' | 'prod'
 }
 
-export const config = require('./config.json') as Config
+// const config = require('../config.json') as Config
+// console.log('diocaro', config)
+
+// console.log('wtf?')
+// config.images = config.images.map(image => {
+//   if (image.notificationRequest == null) return image
+//   console.log('notificationRequest', JSON.stringify(image.notificationRequest))
+
+
+//   const evaluatedNotificationRequest = eval(JSON.stringify(image.notificationRequest))
+//   console.log('evaluatedNotificationRequest', evaluatedNotificationRequest)
+//   return image
+// })
+
+export const config = require('./.config.json') as Config

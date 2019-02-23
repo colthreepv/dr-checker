@@ -4,4 +4,9 @@ jspm_packages
 
 # Serverless directories
 .serverless
-.build
+
+# Webpack directories
+.webpack
+
+# Function configuration
+.config.json

@@ -9,3 +9,18 @@ export interface Status { [project: string]: StatusLayer }
  *   }
  * }
  */
+
+
+
+export async function compareStatusAndNotify (previousStatus: Status, newStatus: Status) {
+  let isChanged = false
+  for (const project in previousStatus) {
+    for (const tag in previousStatus[project]) {
+      if (newStatus[project][tag] === previousStatus[project][tag]) continue
+      isChanged = true
+      // if ()
+    }
+  }
+
+  return isChanged
+}

@@ -18,7 +18,7 @@ service: dr-checker # NOTE: update this with your service name
 # frameworkVersion: "=X.X.X"
 
 plugins:
-  - serverless-plugin-typescript
+  - serverless-webpack
   - serverless-offline
 
 
@@ -63,7 +63,6 @@ provider:
 
 package:
   exclude: ['node_modules/**/*']
-  include: ['config.json']
 
 functions:
   checker:

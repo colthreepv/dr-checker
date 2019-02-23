@@ -1,4 +1,4 @@
-import promiseLimit from 'promise-limit'
+import * as promiseLimit from 'promise-limit'
 import * as request from 'request-promise-native'
 import { URL } from 'url'
 
