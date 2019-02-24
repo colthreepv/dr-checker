@@ -1,4 +1,4 @@
-import { RequestPromiseOptions } from 'request-promise-native'
+import { OptionsWithUrl } from 'request-promise-native'
 
 interface Project {
   /**
@@ -17,7 +17,7 @@ interface Project {
    * advanced usage: request option, it gets eval()uated.
    * It can run take inside process.env values
    */
-  notificationRequest: RequestPromiseOptions
+  notificationRequest: OptionsWithUrl
 }
 
 export interface Config {
@@ -26,18 +26,70 @@ export interface Config {
   appEnv: 'dev' | 'prod'
 }
 
-// const config = require('../config.json') as Config
-// console.log('diocaro', config)
+export type ConfigByProject = { [project: string]: { [tag: string]: string | OptionsWithUrl } }
 
-// console.log('wtf?')
-// config.images = config.images.map(image => {
-//   if (image.notificationRequest == null) return image
-//   console.log('notificationRequest', JSON.stringify(image.notificationRequest))
+// support function for compileNotificationSettings
+function compileOrNot (value, templateVariables) {
+  let newVal
+  switch (typeof value) {
+    case 'string': // interpolate value
+      newVal = new Function('return `' + value + '`').call(templateVariables)
+      break
+    case 'object':
+      newVal = compileNotificationSettings(value, templateVariables)
+      break
+    default:
+      newVal = value
+      break
+  }
+  return newVal
+}
 
+type TemplateVariables = { [key: string]: string }
 
-//   const evaluatedNotificationRequest = eval(JSON.stringify(image.notificationRequest))
-//   console.log('evaluatedNotificationRequest', evaluatedNotificationRequest)
-//   return image
-// })
+export function compileNotificationSettings (obj: any, templateVariables: TemplateVariables) {
+  const newObject = {}
 
-export const config = require('./.config.json') as Config
+  if (Array.isArray(obj)) return obj.map(el => compileOrNot(el, templateVariables))
+
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key) === false) continue
+
+    const value = obj[key]
+    newObject[key] = compileOrNot(value, templateVariables)
+  }
+
+  return newObject
+}
+
+function compileNotificationsConfig (config: Config): Config {
+  const newImages = config.images.map(project => {
+    if (project.notificationRequest != null) {
+      return compileNotificationSettings(project.notificationRequest, process.env)
+    }
+    return project
+  })
+  return Object.assign({}, config, { images: newImages })
+}
+
+function configByProject (config: Config): ConfigByProject {
+  if (Array.isArray(config.images) === false) return {}
+
+  return config.images.reduce((hash, image) => {
+    if (hash[image.repository] == null) hash[image.repository] = {}
+
+    if (Array.isArray(image.tags) === true) {
+      image.tags.forEach(tag => {
+        hash[image.repository][tag] = image.notification || image.notificationRequest
+      })
+    } else {
+      hash[image.repository][image.tags] = image.notification || image.notificationRequest
+    }
+
+    return hash
+  }, {})
+}
+
+const jsonConfig = require('./.config.json') as Config
+export const config = compileNotificationsConfig(jsonConfig)
+export const configBP = configByProject(config)

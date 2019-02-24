@@ -19,7 +19,7 @@ export async function checker (event: any, context: Context) {
 
   console.log('Old Status', previousStatus)
 
-  const isChanged = await compareStatusAndNotify(previousStatus, newStatus) // missing notification config
+  const isChanged = await compareStatusAndNotify(previousStatus, newStatus)
 
   const response: HelloResponse = {
     body: JSON.stringify(newStatus),

@@ -8,9 +8,11 @@ import { Status } from './update-status'
 const gunzipAsync = promisify<InputType, Buffer>(gunzip)
 
 export function updateFunctionConfiguration (status: string) {
+  // FIXME: maybe this can be read from process.env ?
   const appPrefix = config.appEnv === 'dev' ? '-dev' : ''
   const functionName = `dr-checker${ appPrefix }-`
 
+  // FIXME: maybe this can be read from process.env ?
   const lambda = new Lambda({ region: config.region })
   const params: Lambda.UpdateFunctionConfigurationRequest = {
     FunctionName: functionName + 'manifestHandler',
