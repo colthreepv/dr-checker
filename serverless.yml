@@ -11,7 +11,7 @@
 #
 # Happy Coding!
 
-service: dr-checker # NOTE: update this with your service name
+service: registry-notify
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
@@ -62,12 +62,15 @@ provider:
 #    - exclude-me-dir/**
 
 package:
-  exclude: ['node_modules/**/*']
+  exclude:
+    - 'node_modules/**/*'
+    - coverage
 
 functions:
   checker:
     handler: handler.checker
     environment:
+      STAGE: ${self:provider.stage}
       UPDATE_STATUS: ''
 
     events:

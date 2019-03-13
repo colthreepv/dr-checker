@@ -2,20 +2,19 @@ import { Lambda } from 'aws-sdk'
 import { promisify } from 'util'
 import { constants as ZlibConstants, gunzip, gzip, InputType, ZlibOptions } from 'zlib'
 
-import { config } from './config'
 import { Status } from './update-status'
 
 const gunzipAsync = promisify<InputType, Buffer>(gunzip)
 
-export function updateFunctionConfiguration (status: string) {
-  // FIXME: maybe this can be read from process.env ?
-  const appPrefix = config.appEnv === 'dev' ? '-dev' : ''
-  const functionName = `dr-checker${ appPrefix }-`
+const { STAGE, AWS_REGION } = process.env
+const BASE_NAME = 'registry-notify'
 
-  // FIXME: maybe this can be read from process.env ?
-  const lambda = new Lambda({ region: config.region })
+export function updateFunctionConfiguration (status: string) {
+  const functionName = `${ BASE_NAME }-${ STAGE }`
+
+  const lambda = new Lambda({ region: AWS_REGION })
   const params: Lambda.UpdateFunctionConfigurationRequest = {
-    FunctionName: functionName + 'manifestHandler',
+    FunctionName: functionName,
     Environment: {
       Variables: {
         UPDATE_STATUS: status
@@ -23,7 +22,6 @@ export function updateFunctionConfiguration (status: string) {
     } as Lambda.Environment
   }
   const updateConfigRequest = lambda.updateFunctionConfiguration(params).promise()
-  // updateConfigRequest.then(resp => console.log('updateConfig', resp))
 
   return updateConfigRequest
 }
