@@ -8,5 +8,9 @@ jspm_packages
 # Webpack directories
 .webpack
 
+# Test & coverage
+coverage
+.nyc_output
+
 # Function configuration
 .config.json

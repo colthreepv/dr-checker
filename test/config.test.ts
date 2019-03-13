@@ -5,7 +5,7 @@ import { compileNotificationSettings } from '../config'
 
 describe('Testing compileNotificationSettings function', () => {
 
-  it('should passthrought object without variables', () => {
+  it('should passthrough object without variables', () => {
     const testObject = {
       key: 'somevalue',
       nested: {

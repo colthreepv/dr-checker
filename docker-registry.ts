@@ -90,7 +90,7 @@ export async function checkAllImages (config: Config, previousStatus: Status) {
   let manifestPromises: DockerManifestProm
 
   // this will have 2 dimensions: 1) projects, 2) for each project, an array of tags
-  const manifestRetrieveList = config.images.map(project => {
+  const manifestRetrieveList = config.map(project => {
     const projectTokenP = tokenGenerator(project.repository)
 
     return project.tags.map(tag => {

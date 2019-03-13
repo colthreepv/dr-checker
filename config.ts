@@ -20,17 +20,14 @@ interface Project {
   notificationRequest: OptionsWithUrl
 }
 
-export interface Config {
-  images: Project[]
-  region: string
-  appEnv: 'dev' | 'prod'
-}
+export type Config = Project[]
 
 export type ConfigByProject = { [project: string]: { [tag: string]: string | OptionsWithUrl } }
+type TemplateVariables = { [key: string]: string }
 
 // support function for compileNotificationSettings
-function compileOrNot (value, templateVariables) {
-  let newVal
+function compileOrNot (value: string | Object, templateVariables: TemplateVariables) {
+  let newVal: string | Object
   switch (typeof value) {
     case 'string': // interpolate value
       newVal = new Function('return `' + value + '`').call(templateVariables)
@@ -44,8 +41,6 @@ function compileOrNot (value, templateVariables) {
   }
   return newVal
 }
-
-type TemplateVariables = { [key: string]: string }
 
 export function compileNotificationSettings (obj: any, templateVariables: TemplateVariables) {
   const newObject = {}
@@ -63,7 +58,7 @@ export function compileNotificationSettings (obj: any, templateVariables: Templa
 }
 
 function compileNotificationsConfig (config: Config): Config {
-  const newImages = config.images.map(project => {
+  const newImages = config.map(project => {
     if (project.notificationRequest != null) {
       return compileNotificationSettings(project.notificationRequest, process.env)
     }
@@ -73,9 +68,9 @@ function compileNotificationsConfig (config: Config): Config {
 }
 
 function configByProject (config: Config): ConfigByProject {
-  if (Array.isArray(config.images) === false) return {}
+  if (Array.isArray(config) === false) return {}
 
-  return config.images.reduce((hash, image) => {
+  return config.reduce((hash, image) => {
     if (hash[image.repository] == null) hash[image.repository] = {}
 
     if (Array.isArray(image.tags) === true) {
