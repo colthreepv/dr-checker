@@ -1,15 +1,9 @@
-import { Context } from 'aws-lambda'
-import { AWSError } from 'aws-sdk'
+import { Context, APIGatewayProxyResult } from 'aws-lambda'
 
 import { config } from './config'
 import { checkAllImages } from './docker-registry'
 import { retrieveUpdateStatus, saveUpdateStatus } from './lambda'
 import { compareStatusAndNotify } from './update-status'
-
-interface HelloResponse {
-  statusCode: number
-  body: string
-}
 
 export async function checker (event: any, context: Context) {
   const previousStatus = await retrieveUpdateStatus()
@@ -19,14 +13,9 @@ export async function checker (event: any, context: Context) {
 
   console.log('Old Status', previousStatus)
 
-  const isChanged = await compareStatusAndNotify(previousStatus, newStatus)
+  const notifications = await compareStatusAndNotify(previousStatus, newStatus)
 
-  const response: HelloResponse = {
-    body: JSON.stringify(newStatus),
-    statusCode: 200
-  }
-
-  const updateOutcome = await saveUpdateStatus(newStatus)
+  await saveUpdateStatus(newStatus)
   .catch(err => {
     if (err.code === 'ResourceNotFoundException') {
       console.warn('Trying to update the function did not succeed. Have you deployed this lambda?')
@@ -35,9 +24,11 @@ export async function checker (event: any, context: Context) {
     }
   })
 
-  // console.log()
-
-  return response
-  // send notifications to the projects changed
-  // newStatus.then(status => saveUpdateStatus)
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      changes: 'TO BE DONE',
+      notifications
+    })
+  } as APIGatewayProxyResult
 }

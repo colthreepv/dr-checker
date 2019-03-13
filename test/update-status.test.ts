@@ -66,8 +66,10 @@ describe('Testing notifications', () => {
       'library/node': { '8': 'abcdefg' }
     }
 
-    await compareStatusAndNotify(previous, next, {})
+    const requestLog = await compareStatusAndNotify(previous, next, {})
     expect(nockSpy.isDone()).to.equal(false)
+    expect(requestLog).to.be.an('array')
+    expect(requestLog.length).to.be.equal(0)
   })
 
   it('should be able to send configured request with changed status', async () => {
@@ -94,8 +96,11 @@ describe('Testing notifications', () => {
     }
     const nockSpy = nock(NOCK_URL).put(NOCK_PUT_PATH, NOCK_PUT_BODY).reply(200)
 
-    await compareStatusAndNotify(previous, next, config)
+    const requestLog = await compareStatusAndNotify(previous, next, config)
     expect(nockSpy.isDone()).to.equal(true)
+    expect(requestLog).to.be.an('array')
+    expect(requestLog.length).to.be.equal(1)
+    expect(requestLog[0]).to.contain(NOCK_PUT_PATH)
   })
 
 })

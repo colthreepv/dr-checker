@@ -57,14 +57,19 @@ export function compileNotificationSettings (obj: any, templateVariables: Templa
   return newObject
 }
 
+/**
+ * compileNotificationsConfig
+ * returns a Config object compiled Request options
+ */
 function compileNotificationsConfig (config: Config): Config {
-  const newImages = config.map(project => {
+  const compiledConfig = config.map(project => {
     if (project.notificationRequest != null) {
-      return compileNotificationSettings(project.notificationRequest, process.env)
+      const notificationRequest = compileNotificationSettings(project.notificationRequest, process.env)
+      return Object.assign({}, project, { notificationRequest })
     }
     return project
   })
-  return Object.assign({}, config, { images: newImages })
+  return compiledConfig
 }
 
 function configByProject (config: Config): ConfigByProject {

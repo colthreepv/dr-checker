@@ -1,5 +1,6 @@
 import { configBP, ConfigByProject } from './config'
 import * as request from 'request-promise-native'
+import { Response } from 'request'
 
 export interface StatusLayer { [tag: string]: string }
 export interface Status { [project: string]: StatusLayer }
@@ -13,13 +14,21 @@ export interface Status { [project: string]: StatusLayer }
  * }
  */
 
+/**
+ * FIXME
+ * Split this function in 2:
+ * compareStatus -> returns an array of changes from status A to status B
+ * notify(changes, config) -> acts on the array of changes
+ */
+
 // config is useful especially for testing
 export async function compareStatusAndNotify (
   previousStatus: Status,
   newStatus: Status,
   config?: ConfigByProject
 ) {
-  const notificationArray: request.RequestPromise[] = []
+  const requestOptions: request.RequestPromiseOptions = { resolveWithFullResponse: true }
+  const notificationArray: request.RequestPromise<Response>[] = []
   if (config == null) config = configBP
 
   for (const project in previousStatus) {
@@ -33,12 +42,19 @@ export async function compareStatusAndNotify (
 
       const notificationConf = config[project][tag]
       if (typeof notificationConf === 'string') {
-        notificationArray.push(request.post(notificationConf))
+        notificationArray.push(request.post(notificationConf, requestOptions))
       } else {
-        notificationArray.push(request(notificationConf))
+        const requestConfig = Object.assign({}, notificationConf, requestOptions)
+        notificationArray.push(request(requestConfig))
       }
     }
   }
 
-  return Promise.all(notificationArray)
+  const notificationLog = notificationArray.map(async request => {
+    const response = await request
+    const origRequest = response.request
+    return `${origRequest.method} ${origRequest.href} - ${response.statusCode}`
+  })
+
+  return Promise.all(notificationLog)
 }
