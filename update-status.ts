@@ -1,4 +1,4 @@
-import { configBP } from './config'
+import { configBP, ConfigByProject } from './config'
 import * as request from 'request-promise-native'
 
 export interface StatusLayer { [tag: string]: string }
@@ -13,18 +13,25 @@ export interface Status { [project: string]: StatusLayer }
  * }
  */
 
-export async function compareStatusAndNotify (previousStatus: Status, newStatus: Status) {
-  const notificationArray = []
-  let isChanged = false
+// config is useful especially for testing
+export async function compareStatusAndNotify (
+  previousStatus: Status,
+  newStatus: Status,
+  config?: ConfigByProject
+) {
+  const notificationArray: request.RequestPromise[] = []
+  if (config == null) config = configBP
+
   for (const project in previousStatus) {
+    if (config[project] == null) continue
+
     for (const tag in previousStatus[project]) {
       if (newStatus[project][tag] === previousStatus[project][tag]) continue
-      isChanged = true
 
       // in case there are no notification settings specified
-      if (configBP[project][tag] == null) continue
+      if (config[project][tag] == null) continue
 
-      const notificationConf = configBP[project][tag]
+      const notificationConf = config[project][tag]
       if (typeof notificationConf === 'string') {
         notificationArray.push(request.post(notificationConf))
       } else {
@@ -33,5 +40,5 @@ export async function compareStatusAndNotify (previousStatus: Status, newStatus:
     }
   }
 
-  return notificationArray
+  return Promise.all(notificationArray)
 }
