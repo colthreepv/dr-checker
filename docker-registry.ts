@@ -73,12 +73,6 @@ export async function retrieveManifest (token: string, project: string, tag: str
   return manifestRequest
 }
 
-function retrieveStatusHash (project: string, tag: string, previousStatus: Status) {
-  if (previousStatus[project] == null) return null
-  if (previousStatus[project][tag] == null) return null
-  return previousStatus[project][tag]
-}
-
 // loops over config and checks manifests and compares for each one
 // ultimately producing a Status
 export async function checkAllImages (config: Config, previousStatus: Status) {
@@ -110,9 +104,6 @@ export async function checkAllImages (config: Config, previousStatus: Status) {
   manifests.forEach(async manifest => {
     const project = manifest.name
     const tag = manifest.tag
-
-    // hash taken from saved Status
-    const previousStatusHash = retrieveStatusHash(project, tag, previousStatus)
 
     const lastBlobSum = manifest.fsLayers[manifest.fsLayers.length - 1].blobSum
     newStatus[project] = newStatus[project] || {}

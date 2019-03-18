@@ -13,40 +13,25 @@ export interface Status { [project: string]: StatusLayer }
  *   }
  * }
  */
+export type Changes = { project: string, tag: string }[]
 
-/**
- * FIXME
- * Split this function in 2:
- * compareStatus -> returns an array of changes from status A to status B
- * notify(changes, config) -> acts on the array of changes
- */
-
-// config is useful especially for testing
-export async function compareStatusAndNotify (
-  previousStatus: Status,
-  newStatus: Status,
-  config?: ConfigByProject
-) {
+export async function notify (changes: Changes, config?: ConfigByProject) {
+  if (config == null) config = configBP
   const requestOptions: request.RequestPromiseOptions = { resolveWithFullResponse: true }
   const notificationArray: request.RequestPromise<Response>[] = []
-  if (config == null) config = configBP
 
-  for (const project in previousStatus) {
-    if (config[project] == null) continue
+  for (const change of changes) {
+    const { project, tag } = change
 
-    for (const tag in previousStatus[project]) {
-      if (newStatus[project][tag] === previousStatus[project][tag]) continue
+    // in case there are no notification settings specified
+    if (config[project][tag] == null) continue
 
-      // in case there are no notification settings specified
-      if (config[project][tag] == null) continue
-
-      const notificationConf = config[project][tag]
-      if (typeof notificationConf === 'string') {
-        notificationArray.push(request.post(notificationConf, requestOptions))
-      } else {
-        const requestConfig = Object.assign({}, notificationConf, requestOptions)
-        notificationArray.push(request(requestConfig))
-      }
+    const notificationConf = config[project][tag]
+    if (typeof notificationConf === 'string') {
+      notificationArray.push(request.post(notificationConf, requestOptions))
+    } else {
+      const requestConfig = Object.assign({}, notificationConf, requestOptions)
+      notificationArray.push(request(requestConfig))
     }
   }
 
@@ -57,4 +42,24 @@ export async function compareStatusAndNotify (
   })
 
   return Promise.all(notificationLog)
+}
+
+// config is useful especially for testing
+export function whatChanged (
+  previousStatus: Status, newStatus: Status, config?: ConfigByProject
+): Changes {
+  const changesArray: Changes = []
+  if (config == null) config = configBP
+
+  for (const project in previousStatus) {
+    if (config[project] == null) continue
+
+    for (const tag in previousStatus[project]) {
+      if (newStatus[project][tag] === previousStatus[project][tag]) continue
+
+      changesArray.push({ project, tag })
+    }
+  }
+
+  return changesArray
 }

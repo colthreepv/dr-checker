@@ -2,7 +2,7 @@ import { describe, it } from 'mocha'
 import * as nock from 'nock'
 import { expect } from 'chai'
 
-import { Status, compareStatusAndNotify } from '../update-status'
+import { Status, whatChanged, notify } from '../update-status'
 import { ConfigByProject } from '../config'
 
 describe('Testing notifications', () => {
@@ -25,7 +25,8 @@ describe('Testing notifications', () => {
       'library/node': { '8': 'abcdefg' }
     }
 
-    await compareStatusAndNotify(previous, next, config)
+    const changes = whatChanged(previous, next, config)
+    await notify(changes, config)
     expect(nockSpy.isDone()).to.equal(true)
   })
 
@@ -34,7 +35,8 @@ describe('Testing notifications', () => {
     const status = {
       'library/node': { '8': '1234567890' }
     }
-    await compareStatusAndNotify(status, status, config)
+    const changes = whatChanged(status, status, config)
+    await notify(changes, config)
     expect(nockSpy.isDone()).to.equal(false)
   })
 
@@ -52,7 +54,8 @@ describe('Testing notifications', () => {
       'library/node': { '10': NOCK_URL + NOCK_POST_PATH }
     }
 
-    await compareStatusAndNotify(previous, next, config)
+    const changes = whatChanged(previous, next, config)
+    await notify(changes, config)
     expect(nockSpy.isDone()).to.equal(false)
   })
 
@@ -66,10 +69,11 @@ describe('Testing notifications', () => {
       'library/node': { '8': 'abcdefg' }
     }
 
-    const requestLog = await compareStatusAndNotify(previous, next, {})
+    const changes = whatChanged(previous, next, {})
+    await notify(changes)
     expect(nockSpy.isDone()).to.equal(false)
-    expect(requestLog).to.be.an('array')
-    expect(requestLog.length).to.be.equal(0)
+    expect(changes).to.be.an('array')
+    expect(changes.length).to.be.equal(0)
   })
 
   it('should be able to send configured request with changed status', async () => {
@@ -96,11 +100,13 @@ describe('Testing notifications', () => {
     }
     const nockSpy = nock(NOCK_URL).put(NOCK_PUT_PATH, NOCK_PUT_BODY).reply(200)
 
-    const requestLog = await compareStatusAndNotify(previous, next, config)
+    const changes = whatChanged(previous, next, config)
+    const notificationLog = await notify(changes, config)
     expect(nockSpy.isDone()).to.equal(true)
-    expect(requestLog).to.be.an('array')
-    expect(requestLog.length).to.be.equal(1)
-    expect(requestLog[0]).to.contain(NOCK_PUT_PATH)
+    expect(changes).to.be.an('array')
+    expect(changes.length).to.be.equal(1)
+    expect(notificationLog).to.be.an('array')
+    expect(notificationLog[0]).to.contain(NOCK_PUT_PATH)
   })
 
 })
