@@ -4,7 +4,7 @@ import { URL } from 'url'
 
 import { Config } from './config'
 import { DockerManifest, DockerToken } from './registry'
-import { Status, StatusLayer } from './update-status'
+import { Status } from './update-status'
 
 const TOKEN_URL = 'https://auth.docker.io/token'
 const REGISTRY_URL = 'https://registry-1.docker.io/v2/'
@@ -55,25 +55,22 @@ export async function tokenGenerator (project: string, foreignTokenBank?: TokenB
 }
 
 // retrieves manifest from the docker image, with all the layers hashes
-export function retrieveManifest (token: string | Promise<string>, project: string, tag: string): Promise<DockerManifest> {
-  const tokenP = Promise.resolve(token)
-
+export async function retrieveManifest (token: string, project: string, tag: string): Promise<DockerManifest> {
   const ACTION = 'Manifest Retrieval'
   const manifestURL = new URL(`${ project }/manifests/${ tag }`, REGISTRY_URL)
-  const manifestRequest = tokenP.then((token) => {
-    return request.get(manifestURL.toString(), { json: true, auth: { bearer: token } })
-  })
+
+  const manifestRequest = request({
+    url: manifestURL.toString(),
+    method: 'GET',
+    json: true,
+    auth: { bearer: token }
+  }) as request.RequestPromise<DockerManifest>
 
   manifestRequest.catch((err) => {
     console.error(ACTION, 'failed with error:', err)
   })
 
-  return manifestRequest as Promise<DockerManifest>
-}
-
-// compares new image layer hashes to the saved ones, returns a Status
-function checkImageHashChange (lastHash: string, currentHash: string): StatusLayer {
-  return {}
+  return manifestRequest
 }
 
 function retrieveStatusHash (project: string, tag: string, previousStatus: Status) {
@@ -82,7 +79,7 @@ function retrieveStatusHash (project: string, tag: string, previousStatus: Statu
   return previousStatus[project][tag]
 }
 
-// loops over config.image and checks manifests and compares for each one
+// loops over config and checks manifests and compares for each one
 // ultimately producing a Status
 export async function checkAllImages (config: Config, previousStatus: Status) {
   // const manifestPromises = [] as Promise<DockerManifest>[]
@@ -91,17 +88,15 @@ export async function checkAllImages (config: Config, previousStatus: Status) {
 
   // this will have 2 dimensions: 1) projects, 2) for each project, an array of tags
   const manifestRetrieveList = config.map(project => {
-    const projectTokenP = tokenGenerator(project.repository)
+    const tokenP = tokenGenerator(project.repository)
 
-    return project.tags.map(tag => {
+    const retrieveTagList = project.tags.map(tag => {
       // awaits project token generation
-      return projectTokenP.then(token =>
-        // locks on semaphore for manifests
-        manifestLimit(() =>
-          // finally retrieves manifest
-          retrieveManifest(token, project.repository, tag)) as Promise<DockerManifest>
+      return tokenP.then(token =>
+        manifestLimit(() => retrieveManifest(token, project.repository, tag)) as Promise<DockerManifest>
       )
     })
+    return retrieveTagList
   })
 
   // from 2 dimensions array to single dimension
@@ -112,7 +107,7 @@ export async function checkAllImages (config: Config, previousStatus: Status) {
   const newStatus: Status = {}
 
   const manifests = await Promise.all(manifestList)
-  manifests.forEach(manifest => {
+  manifests.forEach(async manifest => {
     const project = manifest.name
     const tag = manifest.tag
 

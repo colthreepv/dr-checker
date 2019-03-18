@@ -12,12 +12,12 @@ interface Project {
   /**
    * simple usage: url where to make a POST request in case the tag changed
    */
-  notification: string
+  notification?: string
   /**
    * advanced usage: request option, it gets eval()uated.
    * It can run take inside process.env values
    */
-  notificationRequest: OptionsWithUrl
+  notificationRequest?: OptionsWithUrl
 }
 
 export type Config = Project[]
