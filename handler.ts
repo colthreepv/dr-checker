@@ -3,7 +3,7 @@ import { Context, APIGatewayProxyResult } from 'aws-lambda'
 import { config } from './config'
 import { checkAllImages } from './docker-registry'
 import { retrieveUpdateStatus, saveUpdateStatus } from './lambda'
-import { compareStatusAndNotify } from './update-status'
+import { whatChanged, notify } from './update-status'
 
 export async function checker (event: any, context: Context) {
   const previousStatus = await retrieveUpdateStatus()
@@ -13,7 +13,8 @@ export async function checker (event: any, context: Context) {
 
   console.log('Old Status', previousStatus)
 
-  const notifications = await compareStatusAndNotify(previousStatus, newStatus)
+  const changes = whatChanged(previousStatus, newStatus)
+  const notifications = await notify(changes)
 
   await saveUpdateStatus(newStatus)
   .catch(err => {
@@ -26,9 +27,6 @@ export async function checker (event: any, context: Context) {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({
-      changes: 'TO BE DONE',
-      notifications
-    })
+    body: JSON.stringify({ changes, notifications })
   } as APIGatewayProxyResult
 }

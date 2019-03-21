@@ -25,7 +25,7 @@ describe('Testing notifications', () => {
       'library/node': { '8': 'abcdefg' }
     }
 
-    const changes = whatChanged(previous, next, config)
+    const changes = whatChanged(previous, next)
     await notify(changes, config)
     expect(nockSpy.isDone()).to.equal(true)
   })
@@ -35,7 +35,7 @@ describe('Testing notifications', () => {
     const status = {
       'library/node': { '8': '1234567890' }
     }
-    const changes = whatChanged(status, status, config)
+    const changes = whatChanged(status, status)
     await notify(changes, config)
     expect(nockSpy.isDone()).to.equal(false)
   })
@@ -54,7 +54,7 @@ describe('Testing notifications', () => {
       'library/node': { '10': NOCK_URL + NOCK_POST_PATH }
     }
 
-    const changes = whatChanged(previous, next, config)
+    const changes = whatChanged(previous, next)
     await notify(changes, config)
     expect(nockSpy.isDone()).to.equal(false)
   })
@@ -69,11 +69,15 @@ describe('Testing notifications', () => {
       'library/node': { '8': 'abcdefg' }
     }
 
-    const changes = whatChanged(previous, next, {})
-    await notify(changes)
-    expect(nockSpy.isDone()).to.equal(false)
+    const changes = whatChanged(previous, next)
     expect(changes).to.be.an('array')
-    expect(changes.length).to.be.equal(0)
+    expect(changes.length).to.be.equal(1)
+
+    const notifications = await notify(changes, {})
+    expect(notifications).to.be.an('array')
+    expect(notifications.length).to.be.equal(0)
+
+    expect(nockSpy.isDone()).to.equal(false)
   })
 
   it('should be able to send configured request with changed status', async () => {
@@ -100,7 +104,7 @@ describe('Testing notifications', () => {
     }
     const nockSpy = nock(NOCK_URL).put(NOCK_PUT_PATH, NOCK_PUT_BODY).reply(200)
 
-    const changes = whatChanged(previous, next, config)
+    const changes = whatChanged(previous, next)
     const notificationLog = await notify(changes, config)
     expect(nockSpy.isDone()).to.equal(true)
     expect(changes).to.be.an('array')
@@ -109,4 +113,31 @@ describe('Testing notifications', () => {
     expect(notificationLog[0]).to.contain(NOCK_PUT_PATH)
   })
 
+})
+
+describe('Testing change management', () => {
+  it('should return a list of changes if there are', () => {
+    const EXAMPLE_STATUS = {
+      'library/node': {
+        '8': 'sha256:22dbe790f71562dfd3d49406b1dfd1e85e50f3dd7cb2e97b3918376ca39cae4e',
+        '10': 'sha256:22dbe790f71562dfd3d49406b1dfd1e85e50f3dd7cb2e97b3918376ca39cae4e' }
+    }
+    const changes = whatChanged({}, EXAMPLE_STATUS)
+    expect(changes).to.be.an('array')
+    expect(changes.length).to.be.equal(2)
+    expect(changes[0]).to.have.all.keys('project', 'tag')
+  })
+
+  it('should return an empty list of changes if there are NOT', () => {
+    const EXAMPLE_STATUS = {
+      'library/node': {
+        '8': 'sha256:22dbe790f71562dfd3d49406b1dfd1e85e50f3dd7cb2e97b3918376ca39cae4e',
+        '10': 'sha256:22dbe790f71562dfd3d49406b1dfd1e85e50f3dd7cb2e97b3918376ca39cae4e' }
+    }
+    const ANOTHER_STATUS = Object.assign({}, EXAMPLE_STATUS)
+
+    const changes = whatChanged(ANOTHER_STATUS, EXAMPLE_STATUS)
+    expect(changes).to.be.an('array')
+    expect(changes.length).to.be.equal(0)
+  })
 })

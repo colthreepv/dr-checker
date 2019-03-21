@@ -24,12 +24,15 @@ export async function notify (changes: Changes, config?: ConfigByProject) {
     const { project, tag } = change
 
     // in case there are no notification settings specified
+    if (config[project] == null) continue
     if (config[project][tag] == null) continue
 
     const notificationConf = config[project][tag]
     if (typeof notificationConf === 'string') {
+      console.log('making request', 'string')
       notificationArray.push(request.post(notificationConf, requestOptions))
     } else {
+      console.log('making request', 'object')
       const requestConfig = Object.assign({}, notificationConf, requestOptions)
       notificationArray.push(request(requestConfig))
     }
@@ -45,19 +48,23 @@ export async function notify (changes: Changes, config?: ConfigByProject) {
 }
 
 // config is useful especially for testing
-export function whatChanged (
-  previousStatus: Status, newStatus: Status, config?: ConfigByProject
-): Changes {
+export function whatChanged (previousStatus: Status, newStatus: Status): Changes {
   const changesArray: Changes = []
-  if (config == null) config = configBP
 
-  for (const project in previousStatus) {
-    if (config[project] == null) continue
-
-    for (const tag in previousStatus[project]) {
-      if (newStatus[project][tag] === previousStatus[project][tag]) continue
-
-      changesArray.push({ project, tag })
+  // newStatus might have an higher cardinality compared to previousStatus
+  for (const project in newStatus) {
+    for (const tag in newStatus[project]) {
+      if (
+        // there is no previous state
+        previousStatus[project] == null ||
+        previousStatus[project][tag] == null ||
+        // or is a different than actual
+        previousStatus[project][tag] !== newStatus[project][tag]
+      ) {
+        changesArray.push({ project, tag })
+      } else {
+        continue
+      }
     }
   }
 
