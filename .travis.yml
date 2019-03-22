@@ -1,2 +1,5 @@
 language: node_js
-node: ["10"]
+node_js: ["10"]
+
+before_install:
+  - echo "{}" > .config.json
