@@ -1,4 +1,4 @@
-import { configBP, ConfigByProject } from './config'
+import { getConf, ConfigByProject } from './config'
 import * as request from 'request-promise-native'
 import { Response } from 'request'
 
@@ -16,7 +16,7 @@ export interface Status { [project: string]: StatusLayer }
 export type Changes = { project: string, tag: string }[]
 
 export async function notify (changes: Changes, config?: ConfigByProject) {
-  if (config == null) config = configBP
+  const configBP = (config == null) ? getConf().configBP : config
   const requestOptions: request.RequestPromiseOptions = { resolveWithFullResponse: true }
   const notificationArray: request.RequestPromise<Response>[] = []
 
@@ -39,9 +39,15 @@ export async function notify (changes: Changes, config?: ConfigByProject) {
   }
 
   const notificationLog = notificationArray.map(async request => {
-    const response = await request
-    const origRequest = response.request
-    return `${origRequest.method} ${origRequest.href} - ${response.statusCode}`
+    try {
+      const response = await request
+      const origRequest = response.request
+      return `${origRequest.method} ${origRequest.href} - ${response.statusCode}`
+    } catch (err) {
+      const statusCode = err.statusCode as number
+      const options = err.options as request.OptionsWithUri
+      return `${options.method} ${options.uri} - ${statusCode}`
+    }
   })
 
   return Promise.all(notificationLog)

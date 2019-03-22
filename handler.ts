@@ -1,29 +1,32 @@
-import { Context, APIGatewayProxyResult } from 'aws-lambda'
+import { APIGatewayProxyResult, Context } from 'aws-lambda'
 
-import { config } from './config'
+import { Config, getConf } from './config'
 import { checkAllImages } from './docker-registry'
 import { retrieveUpdateStatus, saveUpdateStatus } from './lambda'
-import { whatChanged, notify } from './update-status'
+import { notify, whatChanged } from './update-status'
 
-export async function checker (event: any, context: Context) {
+export async function checker (event: any, context: Context, providedConfig?: Config) {
+  const { config, configBP } = getConf(providedConfig)
+  const testMode = (providedConfig != null)
   const previousStatus = await retrieveUpdateStatus()
   const newStatus = await checkAllImages(config, previousStatus)
 
   console.log('New Status:', newStatus)
-
   console.log('Old Status', previousStatus)
 
   const changes = whatChanged(previousStatus, newStatus)
-  const notifications = await notify(changes)
+  const notifications = await notify(changes, configBP)
 
-  await saveUpdateStatus(newStatus)
-  .catch(err => {
-    if (err.code === 'ResourceNotFoundException') {
-      console.warn('Trying to update the function did not succeed. Have you deployed this lambda?')
-    } else {
-      console.log('Update Status has failed with error:', err.message)
-    }
-  })
+  if (testMode === false) {
+    await saveUpdateStatus(newStatus)
+    .catch(err => {
+      if (err.code === 'ResourceNotFoundException') {
+        console.warn('Trying to update the function did not succeed. Have you deployed this lambda?')
+      } else {
+        console.log('Update Status has failed with error:', err.message)
+      }
+    })
+  }
 
   return {
     statusCode: 200,

@@ -1,5 +1,7 @@
 import { OptionsWithUrl } from 'request-promise-native'
 
+const jsonConfig = require('./.config.json') as Config
+
 interface Project {
   /**
    * Example: library/node
@@ -90,6 +92,17 @@ function configByProject (config: Config): ConfigByProject {
   }, {})
 }
 
-const jsonConfig = require('./.config.json') as Config
-export const config = compileNotificationsConfig(jsonConfig)
-export const configBP = configByProject(config)
+export function getConf (providedConfig?: Config) {
+  let compiledConfig: Config
+  let configBP: ConfigByProject
+
+  if (providedConfig == null) {
+    compiledConfig = compileNotificationsConfig(jsonConfig)
+    configBP = configByProject(compiledConfig)
+  } else {
+    compiledConfig = compileNotificationsConfig(providedConfig)
+    configBP = configByProject(compiledConfig)
+  }
+
+  return { config: compiledConfig, configBP }
+}

@@ -27,8 +27,8 @@ export function updateFunctionConfiguration (status: string) {
 }
 
 export async function retrieveUpdateStatus () {
-  if (process.env.UPDATE_STATUS === '') return {} as Status
-  const UPDATE_STATUS = process.env.UPDATE_STATUS as string
+  const { UPDATE_STATUS } = process.env
+  if (UPDATE_STATUS == null || UPDATE_STATUS === '') return {} as Status
 
   const updateStatusB64 = Buffer.from(UPDATE_STATUS, 'base64')
   const status = await gunzipAsync(updateStatusB64)

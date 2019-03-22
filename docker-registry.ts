@@ -18,6 +18,10 @@ type DockerManifestProm = Promise<DockerManifest>[]
 const tokenBank: TokenBank = {}
 const manifestLimit = promiseLimit(MAX_CONCURRENT_MANIFEST_REQUESTS)
 
+export function cleanupTokenBank () {
+  for (const token in tokenBank) delete tokenBank[token]
+}
+
 // foreignTokenBank is useful especially for testing
 export async function tokenGenerator (project: string, foreignTokenBank?: TokenBank) {
   const bank = foreignTokenBank || tokenBank
