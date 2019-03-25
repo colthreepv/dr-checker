@@ -5,6 +5,7 @@ import { constants as ZlibConstants, gunzip, gzip, InputType, ZlibOptions } from
 import { Status } from './update-status'
 
 const gunzipAsync = promisify<InputType, Buffer>(gunzip)
+const gzipAsync = promisify<InputType, ZlibOptions, Buffer>(gzip)
 
 const { STAGE, AWS_REGION } = process.env
 const BASE_NAME = 'registry-notify'
@@ -36,18 +37,15 @@ export async function retrieveUpdateStatus () {
   return JSON.parse(status.toString()) as Status
 }
 
-export async function saveUpdateStatus (status: Status) {
+export async function zipStatus (status: Status): Promise<string> {
   const statusToString = JSON.stringify(status)
   const options: ZlibOptions = { level: ZlibConstants.Z_BEST_COMPRESSION }
 
-  const gzipP: Promise<Buffer> = new Promise((resolve, reject) => {
-    gzip(statusToString, options, (err, result) => {
-      if (err != null) return reject(err)
-      resolve(result)
-    })
-  })
+  const gzipStatus = await gzipAsync(statusToString, options)
+  return gzipStatus.toString('base64')
+}
 
-  const gzipStatus = await gzipP
-  const newStatus = gzipStatus.toString('base64')
-  return updateFunctionConfiguration(newStatus)
+export async function saveUpdateStatus (status: Status) {
+  const gzipStatus = await zipStatus(status)
+  return updateFunctionConfiguration(gzipStatus)
 }

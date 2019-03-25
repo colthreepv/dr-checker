@@ -11,8 +11,9 @@ export async function checker (event: any, context: Context, providedConfig?: Co
   const previousStatus = await retrieveUpdateStatus()
   const newStatus = await checkAllImages(config, previousStatus)
 
-  console.log('New Status:', newStatus)
-  console.log('Old Status', previousStatus)
+  // USEFUL FOR DEBUG
+  // console.log('New Status:', newStatus)
+  // console.log('Old Status', previousStatus)
 
   const changes = whatChanged(previousStatus, newStatus)
   const notifications = await notify(changes, configBP)
@@ -30,6 +31,6 @@ export async function checker (event: any, context: Context, providedConfig?: Co
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ changes, notifications })
+    body: JSON.stringify({ changes, notifications, status: newStatus })
   } as APIGatewayProxyResult
 }

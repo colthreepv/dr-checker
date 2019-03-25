@@ -29,10 +29,8 @@ export async function notify (changes: Changes, config?: ConfigByProject) {
 
     const notificationConf = config[project][tag]
     if (typeof notificationConf === 'string') {
-      console.log('making request', 'string')
       notificationArray.push(request.post(notificationConf, requestOptions))
     } else {
-      console.log('making request', 'object')
       const requestConfig = Object.assign({}, notificationConf, requestOptions)
       notificationArray.push(request(requestConfig))
     }
