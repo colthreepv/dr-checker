@@ -33,7 +33,7 @@ describe('Testing project to live servers', async () => {
   it('should work with valid config', async () => {
     const nockSpy = nock(NOTIFICATION_URL).post(NOTIFICATION_PATH).times(2).reply(200)
 
-    const jsonResponse = await checker(null, null, testConfig)
+    const jsonResponse = await checker(testConfig)
     expect(jsonResponse).to.be.an('object')
     expect(jsonResponse).to.have.all.keys('statusCode', 'body')
     expect(jsonResponse.body).that.be.a('string')
@@ -104,7 +104,7 @@ describe('Testing project with nock', () => {
       .reply(200, TOKEN_FIXTURE)
     const dockerManifestSpy = nock(REGISTRY_URL).get(MANIFEST_PATH).reply(200, MANIFEST_FIXTURE)
 
-    const jsonResponse = await checker(null, null, testConfig)
+    const jsonResponse = await checker(testConfig)
     expect(jsonResponse).to.be.an('object')
     expect(jsonResponse).to.have.all.keys('statusCode', 'body')
     expect(jsonResponse.body).that.be.a('string')
@@ -142,7 +142,7 @@ describe('Testing project with nock', () => {
     const dockerManifestSpy = nock(REGISTRY_URL).get(MANIFEST_PATH).reply(200, MANIFEST_FIXTURE)
     const notificationSpy = nock(NOTIFICATION_URL).post(NOTIFICATION_PATH).reply(200)
 
-    const jsonResponse = await checker(null, null, testConfig)
+    const jsonResponse = await checker(testConfig)
     expect(jsonResponse).to.be.an('object')
     expect(jsonResponse).to.have.all.keys('statusCode', 'body')
     expect(jsonResponse.body).that.be.a('string')

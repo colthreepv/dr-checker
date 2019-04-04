@@ -68,7 +68,7 @@ package:
 
 functions:
   checker:
-    handler: handler.checker
+    handler: handler.registryNotify
     environment:
       STAGE: ${self:provider.stage}
       UPDATE_STATUS: ''

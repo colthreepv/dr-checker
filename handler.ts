@@ -5,7 +5,7 @@ import { checkAllImages } from './docker-registry'
 import { retrieveUpdateStatus, saveUpdateStatus } from './lambda'
 import { notify, whatChanged } from './update-status'
 
-export async function checker (event: any, context: Context, providedConfig?: Config) {
+export async function checker (providedConfig?: Config): Promise<APIGatewayProxyResult> {
   const { config, configBP } = getConf(providedConfig)
   const testMode = (providedConfig != null)
   const previousStatus = await retrieveUpdateStatus()
@@ -32,5 +32,9 @@ export async function checker (event: any, context: Context, providedConfig?: Co
   return {
     statusCode: 200,
     body: JSON.stringify({ changes, notifications, status: newStatus })
-  } as APIGatewayProxyResult
+  }
+}
+
+export async function registryNotify (event: any, context: Context, baseContext, finish) {
+  return checker()
 }
