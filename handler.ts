@@ -15,6 +15,9 @@ export async function checker (providedConfig?: Config): Promise<APIGatewayProxy
   // console.log('New Status:', newStatus)
   // console.log('Old Status', previousStatus)
 
+  console.log('AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID)
+  console.log('AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY)
+
   const changes = whatChanged(previousStatus, newStatus)
   const notifications = await notify(changes, configBP)
 

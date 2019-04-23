@@ -1,4 +1,4 @@
-import { Lambda } from 'aws-sdk'
+import { Lambda, Config } from 'aws-sdk'
 import { promisify } from 'util'
 import { constants as ZlibConstants, gunzip, gzip, InputType, ZlibOptions } from 'zlib'
 
@@ -9,11 +9,17 @@ const gzipAsync = promisify<InputType, ZlibOptions, Buffer>(gzip)
 
 const { STAGE, AWS_REGION } = process.env
 const BASE_NAME = 'registry-notify'
+const FUNCTION_NAME = 'loop'
 
 export function updateFunctionConfiguration (status: string) {
-  const functionName = `${ BASE_NAME }-${ STAGE }`
+  const functionName = `${ BASE_NAME }-${ STAGE }-${ FUNCTION_NAME }`
 
-  const lambda = new Lambda({ region: AWS_REGION })
+  const lambda = new Lambda({
+    region: AWS_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  })
+
   const params: Lambda.UpdateFunctionConfigurationRequest = {
     FunctionName: functionName,
     Environment: {
